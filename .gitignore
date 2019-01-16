@@ -1,0 +1,4 @@
+obj
+latency_cv_wayland
+latency_cv_qt
+latency_cv_xlib
