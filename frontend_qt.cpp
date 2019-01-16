@@ -50,7 +50,6 @@ class MainWindow : public QWidget {
 int main(int argc, char **argv) {
     QApplication app(argc, argv);
 
-    // TODO: handle arguments, camera number, etc.
     QCommandLineParser parser;
     parser.setApplicationDescription("Qt frontend for latency tester");
     parser.addHelpOption();
@@ -61,8 +60,12 @@ int main(int argc, char **argv) {
     if (!succeeded) {
         return EXIT_FAILURE;
     }
+    if (parser.positionalArguments().size() != 1) {
+        parser.showHelp();
+        return EXIT_FAILURE;
+    }
 
-    QString cn = parser.positionalArguments()[0];
+    QString cn = parser.positionalArguments().first();
     bool ok;
     int camera_number = cn.toInt(&ok);
     if (!ok) {
