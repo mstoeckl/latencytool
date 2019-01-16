@@ -13,7 +13,7 @@ helpful.
 
 # Status
 
-Currently, only an OpenCV backend and Qt frontend have been written.
+Currently, only an OpenCV backend, and Qt and xcb frontends have been written.
 
 # Uses
 
@@ -41,5 +41,6 @@ Current requirements are:
 * opencv (tested with 4.0.1)
 * V4L (as preferred opencv backend)
 * Qt5 (tested with 5.12)
+* libxcb (tested with 1.13.1)
 
 To compile, run `make`.
