@@ -2,9 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
-#include <xcb/damage.h>
 #include <xcb/xcb.h>
 
 int main(int argc, char **argv) {
@@ -51,59 +49,56 @@ int main(int argc, char **argv) {
     int is_dark = 1;
     int quitting = 0;
     xcb_generic_event_t *event;
+    int fdes = xcb_get_file_descriptor(connection);
+    struct timespec timeout = {0, 1000000}; // 1ms tick, accuracy unimportant
+    fd_set fds;
+    while (1) {
+        FD_ZERO(&fds);
+        FD_SET(fdes, &fds);
+        if (pselect(fdes + 1, &fds, NULL, NULL, &timeout, NULL) > 0) {
+            // We assume no overflow
+            if ((event = xcb_poll_for_event(connection))) {
+                switch (event->response_type & ~0x80) {
+                case XCB_EXPOSE:
+                    values[0] =
+                        is_dark ? screen->black_pixel : screen->white_pixel;
+                    xcb_change_window_attributes(connection, window,
+                                                 XCB_CW_BACK_PIXEL, values);
+                    xcb_flush(connection);
+                    break;
+                case XCB_KEY_PRESS: {
+                    xcb_key_press_event_t *key_event =
+                        (xcb_key_press_event_t *)event;
 
-    const xcb_query_extension_reply_t *ext_damage_data =
-        xcb_get_extension_data(connection, &xcb_damage_id);
-    if (!ext_damage_data) {
-        fprintf(stderr, "Failed to load xdamage, quitting\n");
-        xcb_disconnect(connection);
-        goto cleanup;
-    }
+                    /* ESC or Q, by keyboard position */
+                    if (key_event->detail == 9 || key_event->detail == 24) {
+                        xcb_destroy_window(connection, window);
+                        quitting = 1;
+                    }
+                } break;
+                default:
+                    break; // Unimportant
+                }
+            }
+        } else {
+            // Poll the backend.
+            enum WhatToDo wtd = update_backend(state);
+            is_dark = wtd == DisplayDark;
 
-    while ((event = xcb_wait_for_event(connection))) {
-        switch (event->response_type & ~0x80) {
-        case XCB_EXPOSE:
             values[0] = is_dark ? screen->black_pixel : screen->white_pixel;
             xcb_change_window_attributes(connection, window, XCB_CW_BACK_PIXEL,
                                          values);
+            xcb_clear_area(connection, 0, window, 0, 0, 0, 0);
             xcb_flush(connection);
-
-            is_dark = !is_dark;
-
-            break;
-        case XCB_KEY_PRESS: {
-            xcb_key_press_event_t *key_event = (xcb_key_press_event_t *)event;
-
-            /* ESC or Q, by keyboard position */
-            if (key_event->detail == 9 || key_event->detail == 24) {
-                xcb_destroy_window(connection, window);
-                quitting = 1;
-            } else {
-                values[0] = is_dark ? screen->black_pixel : screen->white_pixel;
-                xcb_change_window_attributes(connection, window,
-                                             XCB_CW_BACK_PIXEL, values);
-
-                // xcb_damage_add(connection, window, 0);
-
-                xcb_flush(connection);
-
-                is_dark = !is_dark;
-            }
-        } break;
-
-        default:
-            /* Unknown event type, ignore it */
-            break;
         }
-
-        free(event);
-
         if (quitting) {
             break;
         }
     }
 
-cleanup:
+    xcb_destroy_window(connection, window);
+    xcb_disconnect(connection);
+
     cleanup_backend(state);
     return EXIT_SUCCESS;
 }

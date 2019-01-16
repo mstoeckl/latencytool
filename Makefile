@@ -5,8 +5,8 @@ cv_libs := -lopencv_core -lopencv_imgproc -lopencv_videoio
 cv_cflags := $(shell pkg-config --cflags opencv4)
 qt_libs := $(shell pkg-config --libs Qt5Widgets)
 qt_cflags := $(shell pkg-config --cflags Qt5Widgets)
-xcb_libs := $(shell pkg-config --libs xcb) $(shell pkg-config --libs xcb-damage)
-xcb_cflags := $(shell pkg-config --cflags xcb) $(shell pkg-config --cflags xcb-damage)
+xcb_libs := $(shell pkg-config --libs xcb)
+xcb_cflags := $(shell pkg-config --cflags xcb)
 
 all: latency_cv_xcb latency_cv_wayland latency_cv_qt
 
