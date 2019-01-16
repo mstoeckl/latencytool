@@ -18,16 +18,16 @@ latency_cv_qt: obj/frontend_qt.o obj/backend_cv.o
 
 # Object files, in C (or C++ as libraries require)
 obj/frontend_qt.o: obj/.sentinel frontend_qt.cpp obj/frontend_qt.moc
-	g++ -shared -fPIC $(qt_include) -o obj/frontend_qt.o frontend_qt.cpp
+	g++ -c -fPIC $(qt_include) -o obj/frontend_qt.o frontend_qt.cpp
 
 obj/frontend_wayland.o: obj/.sentinel frontend_wayland.c
-	gcc -shared -fPIC -o obj/frontend_wayland.o frontend_wayland.c
+	gcc -c -fPIC -o obj/frontend_wayland.o frontend_wayland.c
 
 obj/frontend_xlib.o: obj/.sentinel frontend_xlib.c
-	gcc -shared -fPIC -o obj/frontend_xlib.o frontend_xlib.c
+	gcc -c -fPIC -o obj/frontend_xlib.o frontend_xlib.c
 
 obj/backend_cv.o: obj/.sentinel backend_opencv.cpp
-	g++ -shared -fPIC $(cv_link) $(cv_include) -o obj/backend_cv.o backend_opencv.cpp
+	g++ -c -fPIC $(cv_link) $(cv_include) -o obj/backend_cv.o backend_opencv.cpp
 
 obj/frontend_qt.moc: obj/.sentinel frontend_qt.cpp
 	moc $(qt_include) frontend_qt.cpp -o $@
