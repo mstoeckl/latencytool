@@ -83,8 +83,6 @@ int main(int argc, char **argv) {
     window.setVisible(true);
     int ret = app.exec();
     cleanup_backend(state);
-
-    // TODO: print final distribution summary!
     return ret;
 }
 

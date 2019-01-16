@@ -38,8 +38,8 @@ Current requirements are:
 
 * GNU make
 * pkgconfig
-* opencv (the makefile looks for versions >= 4)
+* opencv (tested with 4.0.1)
 * V4L (as preferred opencv backend)
-* Qt5
+* Qt5 (tested with 5.12)
 
 To compile, run `make`.
