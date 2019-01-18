@@ -39,8 +39,9 @@ int main(int argc, char **argv) {
     values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS;
 
     xcb_create_window(connection, XCB_COPY_FROM_PARENT, window, screen->root, 0,
-                      0, 400, 400, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                      screen->root_visual, mask, values);
+                      0, SMALL_WINDOW_SIZE, SMALL_WINDOW_SIZE, 0,
+                      XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, mask,
+                      values);
 
     /* Map the window on the screen and flush*/
     xcb_map_window(connection, window);

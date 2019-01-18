@@ -32,8 +32,8 @@ combinations. With `latency_cv_qt`:
 * sway, small window, nested under X11: 43ms average round trip
 * weston, small window: 41ms average round trip
 
-With `latency_cv_xcb`, the latency is reduced ~24 ms for small windows, and ~25 
-for large windows.
+With `latency_cv_xcb` on X11 without compositing, the average round trip time
+is reduced to ~24 ms for small windows, and ~25 ms for large windows.
 
 # Installation
 

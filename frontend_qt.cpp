@@ -31,6 +31,10 @@ class MainWindow : public QWidget {
         QPainter p(this);
         p.fillRect(this->rect(), screen_dark ? Qt::black : Qt::white);
     }
+
+    virtual QSize sizeHint() const override {
+        return QSize(SMALL_WINDOW_SIZE, SMALL_WINDOW_SIZE);
+    }
   public slots:
     void checkCamera() {
         enum WhatToDo wtd = update_backend(state);

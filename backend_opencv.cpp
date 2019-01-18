@@ -126,7 +126,6 @@ end:
 }
 
 extern "C" {
-int magic_number() { return 42; }
 
 void *setup_backend(int camera) { return isetup(camera); }
 
@@ -140,8 +139,10 @@ enum WhatToDo update_backend(void *state) {
 }
 
 void cleanup_backend(void *state) {
-    struct state *s = (struct state *)state;
-    delete s->cap;
-    delete s;
+    if (state) {
+        struct state *s = (struct state *)state;
+        delete s->cap;
+        delete s;
+    }
 }
 }

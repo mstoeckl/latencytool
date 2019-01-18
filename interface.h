@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-int magic_number();
+#define SMALL_WINDOW_SIZE 400
 
 enum WhatToDo { DisplayDark, DisplayLight };
 void *setup_backend(int camera);
