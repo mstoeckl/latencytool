@@ -29,7 +29,7 @@ combinations. With `latency_cv_qt`:
 * X11, no compositing, small window: 25ms average round trip
 * X11, no compositing, large window: 30ms average round trip
 * kwin_wayland, small window: 45ms average round trip
-* sway, small window: 50ms average round trip
+* sway, small window: 47ms average round trip
 * sway, small window, nested under X11: 43ms average round trip
 * weston, small window: 41ms average round trip
 
@@ -40,6 +40,8 @@ reduces the average round trip time for sway to 44ms, and weston to 41ms.
 With `latency_cv_wayland` on sway, as a small window, 44ms average round
 trip time is observed. 
 
+With `latency_cv_fb`, 25ms average round trip time is observed.
+
 # Installation
 
 Current requirements are:
@@ -47,10 +49,11 @@ Current requirements are:
 * GNU make
 * pkgconfig
 * opencv (tested with 4.0.1)
-* V4L (as preferred opencv backend)
 * Qt5 (tested with 5.12)
 * libxcb (tested with 1.13.1)
 * wayland (tested with 1.16.0)
 * wayland-protocols (tested with 1.17.1)
+* V4L (as preferred opencv backend)
+* Linux (for the framebuffer frontend)
 
 To compile, run `make`.

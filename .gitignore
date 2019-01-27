@@ -2,3 +2,4 @@ obj
 latency_cv_wayland
 latency_cv_qt
 latency_cv_xcb
+latency_cv_fb
