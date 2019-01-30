@@ -11,9 +11,9 @@ way_libs := $(shell pkg-config --libs wayland-client) -lrt
 way_cflags := $(shell pkg-config --cflags wayland-client)
 wayproto_dir := $(shell pkg-config --variable=pkgdatadir wayland-protocols)
 
-flags=-O0 -ggdb3
+flags=-O3 -ggdb3
 
-all: latency_cv_xcb latency_cv_wayland latency_cv_qt latency_cv_fb
+all: latency_cv_xcb latency_cv_wayland latency_cv_qt latency_cv_fb latency_cv_term
 
 latency_cv_xcb: obj/frontend_xcb.o obj/backend_cv.o
 	g++ $(flags) $(cv_libs) $(xcb_libs) -o latency_cv_xcb obj/frontend_xcb.o obj/backend_cv.o
@@ -27,6 +27,9 @@ latency_cv_qt: obj/frontend_qt.o obj/backend_cv.o
 latency_cv_fb: obj/frontend_fb.o obj/backend_cv.o
 	g++ $(flags) $(cv_libs) -o latency_cv_fb obj/frontend_fb.o obj/backend_cv.o
 
+latency_cv_term: obj/frontend_term.o obj/backend_cv.o
+	g++ $(flags) $(cv_libs) -o latency_cv_term obj/frontend_term.o obj/backend_cv.o
+
 # Object files, in C (or C++ as libraries require)
 obj/backend_cv.o: obj/.sentinel backend_opencv.cpp
 	g++ $(flags) -c -fPIC $(cv_cflags) -o obj/backend_cv.o backend_opencv.cpp
@@ -35,10 +38,9 @@ obj/frontend_qt.o: obj/.sentinel frontend_qt.cpp obj/frontend_qt.moc
 	g++ $(flags) -c -fPIC $(qt_cflags) -o obj/frontend_qt.o frontend_qt.cpp
 obj/frontend_qt.moc: obj/.sentinel frontend_qt.cpp
 	moc $(qt_cflags) frontend_qt.cpp -o $@
-	
+
 obj/frontend_xcb.o: obj/.sentinel frontend_xcb.c
 	gcc $(flags) -c -fPIC $(xcb_cflags) -o obj/frontend_xcb.o frontend_xcb.c
-
 
 obj/frontend_wayland.o: obj/.sentinel frontend_wayland.c obj/xdg-shell-stable-client-protocol.h
 	gcc $(flags) -c -fPIC $(way_cflags) -o obj/frontend_wayland.o frontend_wayland.c
@@ -51,6 +53,9 @@ obj/xdg-shell-stable-protocol.o: obj/.sentinel obj/xdg-shell-stable-protocol.c
 
 obj/frontend_fb.o: obj/.sentinel frontend_fb.c
 	gcc $(flags) -c -fPIC -o obj/frontend_fb.o frontend_fb.c
+
+obj/frontend_term.o: obj/.sentinel frontend_term.c
+	gcc $(flags) -c -fPIC -o obj/frontend_term.o frontend_term.c
 
 # Misc
 
