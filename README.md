@@ -19,7 +19,7 @@ headache.
 # Status
 
 Currently, only an OpenCV backend has been written. Frontends are available for
-Qt, xcb, and Wayland.
+terminal output, xcb, Wayland, /dev/fb0, and Qt.
 
 # Uses
 
