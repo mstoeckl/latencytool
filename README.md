@@ -11,6 +11,11 @@ stdout will eventually print the average time for a color switch operation --
 this is the round-trip latency. Tuning constants in `backend_opencv.cpp` may be
 helpful.
 
+It is recommended to test with as small a window as feasible, both to reduce
+computational overhead, and because staring at large blinking lights of 10-12 Hz
+for the several minutes needed to get a stable measurement will give you a
+headache.
+
 # Status
 
 Currently, only an OpenCV backend has been written. Frontends are available for

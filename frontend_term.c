@@ -1,11 +1,11 @@
 #include "interface.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
 #define ESC "\x1b["
-#if 1
+#if 0
 // For normal color schemes (with a true black and true white)
 #define WHITE (ESC "47m" ESC "2J")
 #define BLACK (ESC "40m" ESC "2J")
@@ -20,7 +20,8 @@ int main(int argc, char **argv) {
     if (argc != 2 || sscanf(argv[1], "%d", &camera_number) != 1) {
         fprintf(stderr, "Usage: latency_qt_term camera_number\n");
         fprintf(stderr, "Terminal frontend for latency tester.\n");
-        fprintf(stderr, "(It is recommended to pipe stdout to file, display stderr.\n");
+        fprintf(stderr,
+                "(It is recommended to pipe stdout to file, display stderr.\n");
         fprintf(stderr, "\n");
         fprintf(stderr, "Arguments:\n");
         fprintf(stderr, "  camera_number Which camera device to read from. "
