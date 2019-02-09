@@ -11,8 +11,12 @@
 #define BLACK (ESC "40m" ESC "2J")
 #else
 // For terminals with nonstandard palettes that nevertheless support truecolor
-#define WHITE (ESC "48;5;255;255;255m" ESC "2J")
-#define BLACK (ESC "48;5;0;0;0m" ESC "2J")
+#define WHITE                                                                  \
+    (ESC "48;5;255;255;255m" ESC "2J"                                          \
+         "\n")
+#define BLACK                                                                  \
+    (ESC "48;5;0;0;0m" ESC "2J"                                                \
+         "\n")
 #endif
 
 int main(int argc, char **argv) {

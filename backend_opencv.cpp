@@ -157,6 +157,7 @@ static void update_analysis(struct state *s, double delay, bool now_is_dark) {
             "D->L: (%5.2f±%4.2f)ms\n",
             min_tot, mean_tot, std_tot, max_tot, mean_ltd, std_ltd, mean_dtl,
             std_dtl);
+    fflush(stdout);
 }
 
 static bool iupdate(struct state *s) {
