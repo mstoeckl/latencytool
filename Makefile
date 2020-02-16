@@ -13,13 +13,16 @@ wayproto_dir := $(shell pkg-config --variable=pkgdatadir wayland-protocols)
 
 flags=-O3 -ggdb3
 
-all: latency_cv_xcb latency_cv_wayland latency_cv_qt latency_cv_fb latency_cv_term latency_xcb_term
+all: latency_cv_xcb latency_cv_wayland latency_v4l_wayland latency_cv_qt latency_cv_fb latency_cv_term latency_xcb_term
 
 latency_cv_xcb: obj/frontend_xcb.o obj/backend_cv.o
 	g++ $(flags) $(cv_libs) $(xcb_libs) -o latency_cv_xcb obj/frontend_xcb.o obj/backend_cv.o
 
 latency_cv_wayland: obj/frontend_wayland.o obj/backend_cv.o obj/xdg-shell-stable-protocol.o
 	g++ $(flags) $(cv_libs) $(way_libs) -o latency_cv_wayland obj/frontend_wayland.o obj/xdg-shell-stable-protocol.o obj/backend_cv.o
+
+latency_v4l_wayland: obj/frontend_wayland.o obj/backend_v4l.o obj/xdg-shell-stable-protocol.o
+	g++ $(flags) $(way_libs) -o latency_v4l_wayland obj/frontend_wayland.o obj/xdg-shell-stable-protocol.o obj/backend_v4l.o
 
 latency_cv_qt: obj/frontend_qt.o obj/backend_cv.o
 	g++ $(flags) $(cv_libs) $(qt_libs) -o latency_cv_qt obj/frontend_qt.o obj/backend_cv.o
@@ -43,6 +46,8 @@ obj/backend_flicker.o: obj/.sentinel backend_flicker.c
 	gcc $(flags) -c -fPIC -o obj/backend_flicker.o backend_flicker.c
 obj/backend_xcb.o: obj/.sentinel backend_xcb.c
 	gcc $(flags) -c -fPIC $(xcb_cflags) -o obj/backend_xcb.o backend_xcb.c
+obj/backend_v4l.o: obj/.sentinel backend_v4l.c
+	gcc $(flags) -c -fPIC -o obj/backend_v4l.o backend_v4l.c
 
 obj/frontend_qt.o: obj/.sentinel frontend_qt.cpp obj/frontend_qt.moc
 	g++ $(flags) -c -fPIC $(qt_cflags) -o obj/frontend_qt.o frontend_qt.cpp
