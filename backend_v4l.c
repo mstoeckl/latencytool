@@ -242,8 +242,15 @@ end:
 
 void cleanup_backend(void *state) {
     struct state *s = state;
-    // TODO: proper V4l cleanup
 
+    enum v4l2_buf_type type;
+    type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    ioctl_loop(s->fd, VIDIOC_STREAMOFF, &type);
+    for (int i = 0; i < NUM_BUFS; i++) {
+        if (s->bufs[i].len) {
+            munmap(s->bufs[i].data, s->bufs[i].len);
+        }
+    }
     close(s->fd);
     cleanup_analysis(&s->control);
 
