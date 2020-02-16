@@ -24,15 +24,7 @@
 #define CAMERA_FIELD V4L2_FIELD_NONE
 #define CAMERA_TIMEPERFRAME_NUM 1000
 #define CAMERA_TIMEPERFRAME_DENOM 187000
-#define THRESHOLD 0.25
-
-// Tradeoff between statistical convergence and minimum time
-#define FIR_LENGTH 100
-/* 41 ms should be enough for a frame to stabilize, and is not low-integer
- * commeasurate with standard frame rates. */
-// TODO: FIXME: THIS WARPS MEASUREMENTS, when the screen response time is
-// similar
-#define HOLD_TIME (4 * 0.6180339887498949 / 60)
+#define THRESHOLD 0.3
 
 #define NUM_BUFS 5
 
@@ -45,85 +37,9 @@ struct state {
     int fd;
     struct buf bufs[NUM_BUFS];
 
-    // Analysis of delays
-    double current_camera_level; // What color did the camera last see?
-    bool showing_dark;           // What color should the screen show now?
-    bool want_switch;            // Is a time scheduled to switch screen colors?
-    struct timespec capture_time;
-    struct timespec next_switch_time;
-
-    // Analysis of delays
-    double fir[FIR_LENGTH];
-    int fir_head;
-    int nframes;
-
-    // To record raw data to file
-    struct timespec setup_time;
-    FILE *log;
+    enum WhatToDo output_state;
+    struct analysis control;
 };
-
-static int64_t get_delta_nsec(const struct timespec x0,
-                              const struct timespec x1) {
-    return (x1.tv_sec - x0.tv_sec) * 1000000000 + (x1.tv_nsec - x0.tv_nsec);
-}
-
-static struct timespec advance_time(struct timespec previous,
-                                    int64_t step_nsec) {
-    struct timespec next;
-    next.tv_sec = previous.tv_sec + step_nsec / 1000000000;
-    next.tv_nsec = previous.tv_nsec + step_nsec % 1000000000;
-    if (next.tv_nsec >= 1000000000) {
-        next.tv_nsec -= 1000000000;
-        next.tv_sec++;
-    }
-    return next;
-}
-
-static double mean(double m0, double m1) { return m0 > 0. ? m1 / m0 : -1.; }
-
-static double stdev(double m0, double m1, double m2) {
-    return m0 > 2. ? sqrt((m2 - m1 * m1 / m0) / (m0 - 1.)) : -1.;
-}
-
-static void update_analysis(struct state *s, double delay, bool now_is_dark) {
-    int idx = s->nframes % FIR_LENGTH;
-    s->nframes++;
-    s->fir[idx] = (now_is_dark ? delay : -delay) * 1e3;
-
-    double n_ltd = 0., sum_ltd = 0., sum_ltd2 = 0.;
-    double n_dtl = 0., sum_dtl = 0., sum_dtl2 = 0.;
-    double min_tot = 1e100;
-    double max_tot = -1e100;
-    for (int i = 0; i < fmin(s->nframes - 2, FIR_LENGTH); i++) {
-        double idel = s->fir[(FIR_LENGTH + s->nframes - i - 1) % FIR_LENGTH];
-        if (idel > 0) {
-            n_ltd += 1.;
-            sum_ltd += idel;
-            sum_ltd2 += idel * idel;
-        } else {
-            n_dtl += 1.;
-            sum_dtl += -idel;
-            sum_dtl2 += idel * idel;
-        }
-        max_tot = fmax(max_tot, fabs(idel));
-        min_tot = fmin(min_tot, fabs(idel));
-    }
-    double n_tot = n_ltd + n_dtl, sum_tot = sum_ltd + sum_dtl,
-           sum_tot2 = sum_ltd2 + sum_dtl2;
-
-    double mean_ltd = mean(n_ltd, sum_ltd);
-    double mean_dtl = mean(n_dtl, sum_dtl);
-    double mean_tot = mean(n_tot, sum_tot);
-    double std_ltd = stdev(n_ltd, sum_ltd, sum_ltd2);
-    double std_dtl = stdev(n_dtl, sum_dtl, sum_dtl2);
-    double std_tot = stdev(n_tot, sum_tot, sum_tot2);
-    fprintf(stdout,
-            "Net: (%5.2f < %5.2f±%4.2f < %5.2f)ms L->D: (%5.2f±%4.2f)ms; "
-            "D->L: (%5.2f±%4.2f)ms\n",
-            min_tot, mean_tot, std_tot, max_tot, mean_ltd, std_ltd, mean_dtl,
-            std_dtl);
-    fflush(stdout);
-}
 
 static int ioctl_loop(int fd, unsigned long int req, void *arg) {
     // In case frontend has weird signal settings, check for EINTR
@@ -253,21 +169,10 @@ void *setup_backend(int camera) {
         goto fail_bufs;
     }
 
-    s->nframes = 0;
-    s->fir_head = 0;
-    s->want_switch = false;
-    // State initialization is arbitrary
-    s->current_camera_level = 1.0;
-    s->showing_dark = false;
-    s->capture_time.tv_sec = 0;
-    s->capture_time.tv_nsec = 0;
-
-    if (getenv("LATENCY_CV_LOG")) {
-        s->log = fopen("/tmp/logfile.txt", "w");
-    } else {
-        s->log = NULL;
+    s->output_state = DisplayLight;
+    if (setup_analysis(&s->control) < 0) {
+        goto fail_bufs;
     }
-    clock_gettime(CLOCK_MONOTONIC, &s->setup_time);
 
     fprintf(stderr, "All set up\n");
     return s;
@@ -287,9 +192,6 @@ fail_free:
 enum WhatToDo update_backend(void *state) {
     struct state *s = (struct state *)state;
 
-    struct timespec m0, m1, m2, m3, m4;
-    clock_gettime(CLOCK_MONOTONIC, &m0);
-
     struct pollfd pfd;
     pfd.fd = s->fd;
     pfd.events = POLLIN;
@@ -300,8 +202,6 @@ enum WhatToDo update_backend(void *state) {
     } else if (p == 0) {
         goto end;
     }
-
-    clock_gettime(CLOCK_MONOTONIC, &m1);
 
     struct v4l2_buffer buf;
     memset(&buf, 0, sizeof(buf));
@@ -316,17 +216,14 @@ enum WhatToDo update_backend(void *state) {
         }
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &m2);
-
-    struct timespec last_capture_time = s->capture_time;
-    clock_gettime(CLOCK_MONOTONIC, &s->capture_time);
-    //    fprintf(stderr, "%d\n", s->capture_time.tv_nsec);
+    struct timespec captime;
+    clock_gettime(CLOCK_MONOTONIC, &captime);
 
     int length = s->bufs[buf.index].len;
     uint8_t *data = (uint8_t *)s->bufs[buf.index].data;
 
     // TODO: does interpreting the colors & Bayer layout make sense,
-    // or should the fact that we just feed light/dark mean that
+    // or should the fact that we just feed light/dark inputs mean that
     // we can safely average pixel values and get 'good-enough' results?
     uint64_t net_val = 0;
     for (int i = 0; i < length; i++) {
@@ -334,69 +231,21 @@ enum WhatToDo update_backend(void *state) {
     }
     double avg_val = net_val / (double)(length) / 255.0;
 
-    double last_camera_level = s->current_camera_level;
-    s->current_camera_level = avg_val;
-    fprintf(stderr, "%f\n", s->current_camera_level);
-
-    clock_gettime(CLOCK_MONOTONIC, &m3);
-
     if (ioctl_loop(s->fd, VIDIOC_QBUF, &buf) < 0) {
         fprintf(stderr, "Requeue failed: %s\n", strerror(errno));
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &m4);
-
-    //    fprintf(stderr, "%f %f %f %f\n", get_delta_nsec(m0, m1) * 1e-9,
-    //            get_delta_nsec(m1, m2) * 1e-9, get_delta_nsec(m2, m3) * 1e-9,
-    //            get_delta_nsec(m3, m4) * 1e-9);
-
-    bool was_dark = last_camera_level <= THRESHOLD;
-    bool is_dark = s->current_camera_level <= THRESHOLD;
-
-    struct timespec transition_time = last_capture_time;
-    if (was_dark != is_dark) {
-        double t = (THRESHOLD - last_camera_level) /
-                   (s->current_camera_level - last_camera_level);
-        int64_t nsec_gap = get_delta_nsec(last_capture_time, s->capture_time);
-        int64_t step = (int64_t)(t * nsec_gap);
-        transition_time = advance_time(last_capture_time, step);
-
-        // Delay computed relative to old switch time
-        double delay =
-            get_delta_nsec(s->next_switch_time, transition_time) * 1e-9;
-
-        // With a reasonably fast camera, the screen color change
-        // curve can be reasonably well captured by linear interpolation.
-        s->next_switch_time = advance_time(transition_time, HOLD_TIME * 1e9);
-        s->want_switch = true;
-
-        // Update the ringbuffer of transition delays
-        update_analysis(s, delay, is_dark);
-    }
-
-    // Change at requested time
-    int display_transition = 0;
-    if (s->want_switch &&
-        get_delta_nsec(s->next_switch_time, s->capture_time) >= 0) {
-        s->showing_dark = !is_dark;
-        display_transition = s->showing_dark ? 1 : -1;
-        s->want_switch = false;
-    }
-
-    // State logging
-    if (s->log) {
-        fprintf(s->log, "%.9f %.3f %d\n",
-                get_delta_nsec(s->setup_time, s->capture_time) * 1e-9, avg_val,
-                display_transition);
-    }
-
+    s->output_state = update_analysis(&s->control, captime, avg_val, THRESHOLD);
 end:
-    return s->showing_dark ? DisplayDark : DisplayLight;
+    return s->output_state;
 }
 
 void cleanup_backend(void *state) {
     struct state *s = state;
+    // TODO: proper V4l cleanup
+
     close(s->fd);
+    cleanup_analysis(&s->control);
 
     free(s);
 }

@@ -9,7 +9,8 @@ white or black; moving the camera directly in front of the window should start
 rapidly switching the window color to the opposite of whatever the camera sees.
 stdout will eventually print the average time for a color switch operation --
 this is the round-trip latency. Tuning constants in `backend_opencv.cpp` may be
-helpful.
+helpful. The V4L backend, on the other hand, will not work correctly unless
+you adjust constants to match your camera.
 
 It is recommended to test with as small a window as feasible, both to reduce
 computational overhead, and because staring at large blinking lights of 10-12 Hz
@@ -18,7 +19,7 @@ headache.
 
 # Status
 
-Currently, only an OpenCV backend has been written. Frontends are available for
+An OpenCV and a V4L backend have been written. Frontends are available for
 terminal output, xcb, Wayland, /dev/fb0, and Qt.
 
 # Uses
@@ -59,6 +60,6 @@ Current requirements are:
 * wayland (tested with 1.16.0)
 * wayland-protocols (tested with 1.17.1)
 * V4L (as preferred opencv backend)
-* Linux (for the framebuffer frontend)
+* Linux (for the framebuffer frontend, and the V4L backend)
 
 To compile, run `make`.

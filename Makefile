@@ -11,34 +11,37 @@ way_libs := $(shell pkg-config --libs wayland-client) -lrt
 way_cflags := $(shell pkg-config --cflags wayland-client)
 wayproto_dir := $(shell pkg-config --variable=pkgdatadir wayland-protocols)
 
-flags=-O3 -ggdb3
+flags=-O3 -ggdb3 -D_DEFAULT_SOURCE
 
-all: latency_cv_xcb latency_cv_wayland latency_v4l_wayland latency_cv_qt latency_cv_fb latency_cv_term latency_xcb_term
+all: latency_cv_xcb latency_cv_wayland latency_v4l_wayland latency_v4l_xcb latency_cv_qt latency_cv_fb latency_cv_term latency_xcb_term
 
-latency_cv_xcb: obj/frontend_xcb.o obj/backend_cv.o
-	g++ $(flags) $(cv_libs) $(xcb_libs) -o latency_cv_xcb obj/frontend_xcb.o obj/backend_cv.o
+latency_cv_xcb: obj/frontend_xcb.o obj/backend_cv.o obj/common.o
+	g++ $(flags) $(cv_libs) $(xcb_libs) -o latency_cv_xcb obj/frontend_xcb.o obj/backend_cv.o obj/common.o
 
-latency_cv_wayland: obj/frontend_wayland.o obj/backend_cv.o obj/xdg-shell-stable-protocol.o
-	g++ $(flags) $(cv_libs) $(way_libs) -o latency_cv_wayland obj/frontend_wayland.o obj/xdg-shell-stable-protocol.o obj/backend_cv.o
+latency_cv_wayland: obj/frontend_wayland.o obj/backend_cv.o obj/xdg-shell-stable-protocol.o obj/common.o
+	g++ $(flags) $(cv_libs) $(way_libs) -o latency_cv_wayland obj/frontend_wayland.o obj/xdg-shell-stable-protocol.o obj/backend_cv.o obj/common.o
 
-latency_v4l_wayland: obj/frontend_wayland.o obj/backend_v4l.o obj/xdg-shell-stable-protocol.o
-	g++ $(flags) $(way_libs) -o latency_v4l_wayland obj/frontend_wayland.o obj/xdg-shell-stable-protocol.o obj/backend_v4l.o
+latency_cv_qt: obj/frontend_qt.o obj/backend_cv.o obj/common.o
+	g++ $(flags) $(cv_libs) $(qt_libs) -o latency_cv_qt obj/frontend_qt.o obj/backend_cv.o obj/common.o
 
-latency_cv_qt: obj/frontend_qt.o obj/backend_cv.o
-	g++ $(flags) $(cv_libs) $(qt_libs) -o latency_cv_qt obj/frontend_qt.o obj/backend_cv.o
+latency_cv_fb: obj/frontend_fb.o obj/backend_cv.o obj/common.o
+	g++ $(flags) $(cv_libs) -o latency_cv_fb obj/frontend_fb.o obj/backend_cv.o obj/common.o
 
-latency_cv_fb: obj/frontend_fb.o obj/backend_cv.o
-	g++ $(flags) $(cv_libs) -o latency_cv_fb obj/frontend_fb.o obj/backend_cv.o
+latency_cv_term: obj/frontend_term.o obj/backend_cv.o obj/common.o
+	g++ $(flags) $(cv_libs) -o latency_cv_term obj/frontend_term.o obj/backend_cv.o obj/common.o
 
-latency_cv_term: obj/frontend_term.o obj/backend_cv.o
-	g++ $(flags) $(cv_libs) -o latency_cv_term obj/frontend_term.o obj/backend_cv.o
+latency_v4l_wayland: obj/frontend_wayland.o obj/backend_v4l.o obj/xdg-shell-stable-protocol.o obj/common.o
+	g++ $(flags) $(way_libs) -o latency_v4l_wayland obj/frontend_wayland.o obj/xdg-shell-stable-protocol.o obj/backend_v4l.o obj/common.o
+
+latency_v4l_xcb: obj/frontend_xcb.o obj/backend_v4l.o obj/xdg-shell-stable-protocol.o obj/common.o
+	g++ $(flags) $(xcb_libs) -o latency_v4l_xcb obj/frontend_xcb.o obj/backend_v4l.o obj/common.o
 
 latency_flicker_term: obj/frontend_term.o obj/backend_flicker.o
 	g++ $(flags) -o latency_flicker_term obj/frontend_term.o obj/backend_flicker.o
 
 latency_xcb_term: obj/frontend_term.o obj/backend_xcb.o
 	g++ $(flags) $(xcb_libs) -o latency_xcb_term obj/frontend_term.o obj/backend_xcb.o
-	
+
 # Object files, in C (or C++ as libraries require)
 obj/backend_cv.o: obj/.sentinel backend_opencv.cpp
 	g++ $(flags) -c -fPIC $(cv_cflags) -o obj/backend_cv.o backend_opencv.cpp
@@ -71,6 +74,9 @@ obj/frontend_fb.o: obj/.sentinel frontend_fb.c
 
 obj/frontend_term.o: obj/.sentinel frontend_term.c
 	gcc $(flags) -c -fPIC -o obj/frontend_term.o frontend_term.c
+
+obj/common.o: obj/.sentinel common.c
+	gcc $(flags) -c -fPIC -o obj/common.o common.c
 
 # Misc
 

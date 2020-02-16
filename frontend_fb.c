@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     }
 
     // Oddly enough, O_WRONLY fails even though we only mmap with PROT_WRITE
-    int fbd = open("/dev/fb0", O_RDWR | O_CLOEXEC);
+    int fbd = open("/dev/fb0", O_RDWR);
     if (fbd == -1) {
         fprintf(stderr, "Failed to open /dev/fb0, the first framebuffer. Are "
                         "you (and /dev/fb0) both in group 'video'?\n");
