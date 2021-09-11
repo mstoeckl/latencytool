@@ -6,4 +6,6 @@ latency_cv_fb
 latency_cv_term
 latency_xcb_term
 latency_v4l_wayland
+latency_v4l_wayland_gl
+latency_v4l_wayland_gbm
 latency_v4l_xcb

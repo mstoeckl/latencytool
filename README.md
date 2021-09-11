@@ -20,7 +20,8 @@ headache.
 # Status
 
 An OpenCV and a V4L backend have been written. Frontends are available for
-terminal output, xcb, Wayland, /dev/fb0, and Qt.
+terminal output, xcb, Wayland (Standard, OpenGL, GBM variants), /dev/fb0, and
+Qt.
 
 # Uses
 
@@ -59,6 +60,9 @@ Current requirements are:
 * libxcb (tested with 1.13.1)
 * wayland (tested with 1.16.0)
 * wayland-protocols (tested with 1.17.1)
+* EGL (tested with 1.5)
+* OpenGL (any version)
+* gbm (tested with Mesa 21.2.1)
 * V4L (as preferred opencv backend)
 * Linux (for the framebuffer frontend, and the V4L backend)
 

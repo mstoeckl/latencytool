@@ -9,13 +9,15 @@ xcb_libs := $(shell pkg-config --libs xcb)
 xcb_cflags := $(shell pkg-config --cflags xcb)
 gl_libs :=  $(shell pkg-config --libs opengl egl wayland-egl)
 gl_cflags :=  $(shell pkg-config --cflags opengl egl wayland-egl)
+gbm_libs :=  $(shell pkg-config --libs gbm)
+gbm_cflags :=  $(shell pkg-config --cflags gbm)
 way_libs := $(shell pkg-config --libs wayland-client) -lrt
 way_cflags := $(shell pkg-config --cflags wayland-client)
 wayproto_dir := $(shell pkg-config --variable=pkgdatadir wayland-protocols)
 
 flags=-O3 -ggdb3 -D_DEFAULT_SOURCE
 
-all: latency_cv_xcb latency_cv_wayland latency_v4l_wayland_gl latency_v4l_wayland latency_v4l_xcb latency_cv_qt latency_cv_fb latency_cv_term latency_xcb_term
+all: latency_cv_xcb latency_cv_wayland latency_v4l_wayland_gl latency_v4l_wayland_gbm latency_v4l_wayland latency_v4l_xcb latency_cv_qt latency_cv_fb latency_cv_term latency_xcb_term
 
 latency_cv_xcb: obj/frontend_xcb.o obj/backend_cv.o obj/common.o
 	g++ $(flags) $(cv_libs) $(xcb_libs) -o latency_cv_xcb obj/frontend_xcb.o obj/backend_cv.o obj/common.o
@@ -37,6 +39,9 @@ latency_v4l_wayland: obj/frontend_wayland.o obj/backend_v4l.o obj/xdg-shell-stab
 
 latency_v4l_wayland_gl: obj/frontend_wayland_gl.o obj/backend_v4l.o obj/xdg-shell-stable-protocol.o obj/common.o
 	g++ $(flags) $(way_libs) $(gl_libs) -o latency_v4l_wayland_gl obj/frontend_wayland_gl.o obj/xdg-shell-stable-protocol.o obj/backend_v4l.o obj/common.o
+
+latency_v4l_wayland_gbm: obj/frontend_wayland_gbm.o obj/backend_v4l.o obj/xdg-shell-stable-protocol.o obj/linux-dmabuf-unstable-v1-protocol.o obj/common.o
+	g++ $(flags) $(way_libs) $(gbm_libs) -o latency_v4l_wayland_gbm obj/frontend_wayland_gbm.o obj/xdg-shell-stable-protocol.o obj/linux-dmabuf-unstable-v1-protocol.o obj/backend_v4l.o obj/common.o
 
 latency_v4l_xcb: obj/frontend_xcb.o obj/backend_v4l.o obj/xdg-shell-stable-protocol.o obj/common.o
 	g++ $(flags) $(xcb_libs) -o latency_v4l_xcb obj/frontend_xcb.o obj/backend_v4l.o obj/common.o
@@ -69,12 +74,20 @@ obj/frontend_wayland.o: obj/.sentinel frontend_wayland.c obj/xdg-shell-stable-cl
 	gcc $(flags) -c -fPIC $(way_cflags) -o obj/frontend_wayland.o frontend_wayland.c
 obj/frontend_wayland_gl.o: obj/.sentinel frontend_wayland_gl.c obj/xdg-shell-stable-client-protocol.h
 	gcc $(flags) -c -fPIC $(way_cflags) $(gl_cflags) -o obj/frontend_wayland_gl.o frontend_wayland_gl.c
+obj/frontend_wayland_gbm.o: obj/.sentinel frontend_wayland_gbm.c obj/xdg-shell-stable-client-protocol.h obj/linux-dmabuf-unstable-v1-client-protocol.h
+	gcc $(flags) -c -fPIC $(way_cflags) $(gbm_cflags) -o obj/frontend_wayland_gbm.o frontend_wayland_gbm.c
 obj/xdg-shell-stable-client-protocol.h: obj/.sentinel
 	wayland-scanner client-header $(wayproto_dir)/stable/xdg-shell/xdg-shell.xml obj/xdg-shell-stable-client-protocol.h
 obj/xdg-shell-stable-protocol.c: obj/.sentinel
 	wayland-scanner private-code $(wayproto_dir)/stable/xdg-shell/xdg-shell.xml obj/xdg-shell-stable-protocol.c
 obj/xdg-shell-stable-protocol.o: obj/.sentinel obj/xdg-shell-stable-protocol.c
 	gcc $(flags) -c -fPIC $(way_cflags) -o obj/xdg-shell-stable-protocol.o obj/xdg-shell-stable-protocol.c
+obj/linux-dmabuf-unstable-v1-client-protocol.h: obj/.sentinel
+	wayland-scanner client-header $(wayproto_dir)/unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml obj/linux-dmabuf-unstable-v1-client-protocol.h
+obj/linux-dmabuf-unstable-v1-protocol.c: obj/.sentinel
+	wayland-scanner private-code $(wayproto_dir)/unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml obj/linux-dmabuf-unstable-v1-protocol.c
+obj/linux-dmabuf-unstable-v1-protocol.o: obj/.sentinel obj/linux-dmabuf-unstable-v1-protocol.c
+	gcc $(flags) -c -fPIC $(way_cflags) -o obj/linux-dmabuf-unstable-v1-protocol.o obj/linux-dmabuf-unstable-v1-protocol.c
 
 obj/frontend_fb.o: obj/.sentinel frontend_fb.c
 	gcc $(flags) -c -fPIC -o obj/frontend_fb.o frontend_fb.c
@@ -92,6 +105,6 @@ obj/.sentinel:
 	touch obj/.sentinel
 
 clean:
-	rm -f obj/*.h obj/*.c obj/*.o obj/*.moc latency_cv_xcb latency_cv_wayland latency_cv_qt latency_cv_fb latency_cv_term latency_flicker_term latency_xcb_term latency_v4l_wayland_gl latency_v4l_wayland latency_v4l_xcb
+	rm -f obj/*.h obj/*.c obj/*.o obj/*.moc latency_cv_xcb latency_cv_wayland latency_cv_qt latency_cv_fb latency_cv_term latency_flicker_term latency_xcb_term latency_v4l_wayland_gl latency_v4l_wayland_gbm latency_v4l_wayland latency_v4l_xcb
 
 .PHONY: all clean
